@@ -1,0 +1,40 @@
+name: Notificar por correo en push
+
+on:
+  push:
+    branches:
+      - main
+      - feature_a
+      - feature_b
+
+jobs:
+  send_email:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Preparar asunto y contenido
+        id: mailvars
+        run: |
+          echo "BRANCH_NAME=${GITHUB_REF##*/}" >> $GITHUB_ENV
+          echo "COMMIT_MSG=$(git log -1 --pretty=%B)" >> $GITHUB_ENV
+          echo "ACTOR=${GITHUB_ACTOR}" >> $GITHUB_ENV
+
+      - name: Enviar correo (SMTP)
+        uses: dawidd6/action-send-mail@v3
+        with:
+          #Datos
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          to: ${{ secrets.NOTIFY_EMAIL_TO }}
+          from: ${{ secrets.NOTIFY_EMAIL_FROM }}
+          subject: Cambios subidos a rama_${{ env.BRANCH_NAME }}
+          body: |
+            Se han subido cambios a la rama: ${{ env.BRANCH_NAME }}
+            Repositorio: ${{ github.repository }}
+            Commit: ${{ github.sha }}
+            Autor de push: ${{ env.ACTOR }}
+            Mensaje: ${{ env.COMMIT_MSG }}
